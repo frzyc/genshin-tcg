@@ -1,16 +1,20 @@
-import styled from '@emotion/styled';
-import NxWelcome from './nx-welcome';
+import { Container, CssBaseline } from '@mui/material';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Content from './Content';
 
-const StyledApp = styled.div`
-  // Your style here
-`;
-
-export function App() {
-  return (
-    <StyledApp>
-      <NxWelcome title="frontend" />
-    </StyledApp>
-  );
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
+function App() {
+  return <ThemeProvider theme={darkTheme}>
+    <CssBaseline>
+      <Container sx={{ my: 2 }}>
+        <Content />
+      </Container>
+    </CssBaseline>
+  </ThemeProvider>;
 }
 
 export default App;
