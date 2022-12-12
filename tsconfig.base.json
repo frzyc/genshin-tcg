@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@genshin-tcg/common": ["libs/common/src/index.ts"]
+      "@genshin-tcg/common": ["libs/common/src/index.ts"],
+      "@genshin-tcg/genshin-imgs": ["libs/genshin-imgs/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

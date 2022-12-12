@@ -1,18 +1,15 @@
 
-import { MatchHistory } from "@genshin-tcg/common";
+import { User } from "@genshin-tcg/common";
 import React from "react";
 
-type User = {
-  username: string,
-  setUserName: (u: string) => void
-  history: MatchHistory
-  setHistory: (h: MatchHistory) => void
+type UserContextObj = {
+  user?: User,
+  setUser: (u: User) => void,
+  
 }
-const defUser: User = {
-  username: "",
-  history: [],
-  setHistory: () => undefined,
-  setUserName: () => undefined
+const defUser: UserContextObj = {
+  user: undefined,
+  setUser: () => undefined,
 }
 
 export const UserContext = React.createContext(defUser)

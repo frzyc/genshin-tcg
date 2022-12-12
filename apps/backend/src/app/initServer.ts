@@ -1,12 +1,12 @@
-import * as express from "express";
-import { Express } from "express"
+import { UID, User } from "@genshin-tcg/common";
 import * as cors from "cors";
+import * as express from "express";
+import { Express } from "express";
 import * as http from 'http';
-import { elo } from "@genshin-tcg/common"
 
 import { Server, Socket } from "socket.io";
 import { Database } from "./Database";
-
+let connections = 0
 export default function initServer(app: Express) {
   const server = http.createServer(app);
   const io = new Server(server, {
@@ -17,12 +17,12 @@ export default function initServer(app: Express) {
 
   });
   setInterval(() => {
-    io.emit('users', io.engine.clientsCount)
+    io.emit('users', connections)
   }, 1000)
 
 
-  type NameSocket = {
-    name: string,
+  type UserSocket = {
+    user: User,
     socket: Socket,
   }
 
@@ -30,41 +30,50 @@ export default function initServer(app: Express) {
 
   type Match = {
     key: string
-    p1: NameSocket
-    p2: NameSocket
+    p1: UserSocket
+    p2: UserSocket
     startTime: Date,
   }
   let matchCounter = 0;
-  const queue = {} as { [user: string]: Socket }
-  io.on('connection', (socket) => {
-    console.log('a user connected', io.engine.clientsCount);
+  const queue = {} as { [uid: number]: Socket }
 
-    socket.on("match", (name) => {
-      if (queue[name]) {
+  io.on('connection', (socket) => {
+    connections++
+
+    socket.on("match", (uid) => {
+      if (queue[uid]) {
         console.error("user already queued")
         return
       }
-      console.log("onMatch, adding ", name, "to queue", Object.keys(queue))
+      console.log("onMatch, adding ", uid, "to queue", Object.keys(queue))
       if (Object.keys(queue).length >= 1) { // TODO elo matching
-        const opponentname = Object.keys(queue)[0]
+        const opponentUid = Object.keys(queue)[0]
 
-        matchPlayer({ name, socket }, { name: opponentname, socket: queue[opponentname] })
-        delete queue[opponentname]
+        matchPlayer({ user: database.getSync(uid), socket }, { user: database.getSync(opponentUid), socket: queue[opponentUid] })
+        delete queue[opponentUid]
       } else {
-        queue[name] = socket
+        queue[uid] = socket
       }
     })
-    socket.on("userData", (name) => {
-      console.log("sendUserData", name, database.get(name))
-      socket.emit("userData", database.get(name))
+    socket.on("userData", async (uid: UID) => {
+      const usr = await database.get(uid)
+      if (usr) socket.emit("userData", usr)
+      else socket.emit("userData:fail")
+    })
+    socket.on("profile", async (uid: UID) => {
+      const usr = await database.get(uid)
+      console.log("emit", `profile:${uid}`)
+      if (usr) socket.emit(`profile:${uid}`, usr.profile)
+      else socket.emit("profile:fail")
     })
     socket.on('disconnect', () => {
+      // TODO: if user is in matchmake, remove from match
       console.log('user disconnected');
+      connections--
     });
   });
-
-  function matchPlayer(p1: NameSocket, p2: NameSocket) {
-    const key = p1.name + p2.name + matchCounter++
+  function matchPlayer(p1: UserSocket, p2: UserSocket) {
+    const key = "" + p1.user.uid + p2.user.uid + matchCounter++
     const match: Match = {
       key, p1, p2,
       startTime: new Date()
@@ -84,8 +93,8 @@ export default function initServer(app: Express) {
     function matchAccepted() {
       if (!p1Accept || !p2Accept) return
       console.log("MATCH ACCEPTED")
-      p1.socket.emit("match_opponent", { name: p2.name, join: false })
-      p2.socket.emit("match_opponent", { name: p1.name, join: true })
+      p1.socket.emit("match_opponent", { name: p2.user.uid, join: false })
+      p2.socket.emit("match_opponent", { name: p1.user.uid, join: true })
 
       let p1Result = undefined as undefined | boolean
       let p2Result = undefined as undefined | boolean
@@ -114,18 +123,8 @@ export default function initServer(app: Express) {
           p2.socket.removeAllListeners("match_result")
           console.log("MATCH IS OVER", p1Result, p2Result)
           const [winner, loser] = p1Result ? [p1, p2] : [p2, p1]
-          const winnerUser = database.get(winner.name)
-          const loserUser = database.get(loser.name)
-          const winnerElo = elo(Object.values(winnerUser.history).map(({ opponentElo, won }) => opponentElo * (won ? 1 : -1)))
-          const loserElo = elo(Object.values(loserUser.history).map(({ opponentElo, won }) => opponentElo * (won ? 1 : -1)))
-          winnerUser.history.push({ opponent: loser.name, opponentElo: loserElo, won: true, time: Date.now() })
-          database.set(winner.name, winnerUser)
-
-          loserUser.history.push({ opponent: winner.name, opponentElo: winnerElo, won: false, time: Date.now() })
-          database.set(loser.name, loserUser)
-
-          winner.socket.emit("userData", winnerUser)
-          loser.socket.emit("userData", loserUser)
+          winner.socket.emit("userData", database.matched(winner.user.uid, loser.user.uid, "win"))
+          loser.socket.emit("userData", database.matched(loser.user.uid, winner.user.uid, "loss"))
           p1.socket.emit("match_result_accepted")
           p2.socket.emit("match_result_accepted")
         }

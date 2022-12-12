@@ -1,18 +1,9 @@
-import { MatchHistory } from "./common"
-
-export function elo(scores: number[]) {
-  if (scores.length === 0) return 1000
-
-  //algorithm of 400
-  const scoreSum = scores.reduce((tot, s) => tot + Math.abs(s), 0)
-  const winlossDiff = scores.reduce((tot, s) => tot + (s > 0 ? 1 : -1), 0)
-  return (scoreSum + 400 * winlossDiff) / scores.length
+import { User } from "./common"
+export function eloMatchMeta(mm: User["matchMeta"]) {
+  return elo(mm.wins, mm.losses, mm.eloTot)
 }
+export function elo(wins: number, losses: number, scoreSum: number) {
 
-export function historyToScores(history: MatchHistory): number[] {
-  return Object.values(history).map(({ opponentElo, won }) => opponentElo * (won ? 1 : -1))
-}
-
-export function eloHistory(history: MatchHistory) {
-  return elo(historyToScores(history))
+  //algorithm of 400, with a 5 game damper (hence 5*1000)
+  return (5 * 1000 + scoreSum + 400 * (wins - losses)) / ((wins + losses) + 5)
 }

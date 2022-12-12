@@ -1,0 +1,49 @@
+{
+  "name": "genshin-imgs",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/genshin-imgs/src",
+  "projectType": "library",
+  "tags": [ ],
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": [ "{options.outputFile}" ],
+      "options": {
+        "lintFilePatterns": [ "libs/genshin-imgs/**/*.{ts,tsx,js,jsx}" ]
+      }
+    },
+    "load-genshindata-tsc": {
+      "command": "tsc libs/genshin-imgs/scripts/loadGenshinData.ts"
+    },
+    "load-genshindata": {
+      "command": "node libs/genshin-imgs/scripts/loadGenshinData.js",
+      "dependsOn": [ "load-genshindata-tsc" ]
+    },
+    "load-assets-tsc": {
+      "command": "tsc libs/genshin-imgs/scripts/loadAssets.ts --resolveJsonModule --esModuleInterop"
+    },
+    "load-assets": {
+      "command": "node libs/genshin-imgs/scripts/loadAssets.js",
+      "dependsOn": [ "load-assets-tsc", "load-assets-tsc" ]
+    },
+    "build": {
+      "executor": "@nrwl/vite:build",
+      "outputs": [ "{options.outputPath}" ],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/libs/genshin-imgs"
+      },
+      "configurations": {
+        "development": { },
+        "production": { }
+      }
+    },
+    "test": {
+      "executor": "@nrwl/vite:test",
+      "outputs": [ "{projectRoot}/coverage" ],
+      "options": {
+        "passWithNoTests": true
+      }
+    }
+  }
+}
