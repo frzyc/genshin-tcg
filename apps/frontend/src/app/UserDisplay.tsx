@@ -1,4 +1,4 @@
-import { User } from '@genshin-tcg/common';
+import { UserData } from '@genshin-tcg/common';
 import { avatars, namebanners } from '@genshin-tcg/genshin-imgs';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -26,10 +26,10 @@ export default function UserDisplay() {
     return () => {
       socket.off('userData:fail');
     };
-  }, []);
+  }, [socket]);
 
   useEffect(() => {
-    socket.on("userData", (user: User) => {
+    socket.on("userData", (user: UserData) => {
       if (user.uid !== uidTemp) return
       setUser(user)
     })

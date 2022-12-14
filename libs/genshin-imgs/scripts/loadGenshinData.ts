@@ -3,7 +3,6 @@ import { exec } from "child_process";
 import * as path from 'path';
 
 const projectDir = path.resolve(__dirname, "..")
-console.log({ projectDir })
 fs.access(`${projectDir}/GenshinData`, (err) => {
   if (err) {//doesnt exist
     console.log("./GenshinData doesn't exist, cloning repo...");

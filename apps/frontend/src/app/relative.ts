@@ -6,7 +6,6 @@ const msPerMonth = msPerDay * 30;
 const msPerYear = msPerDay * 365;
 
 export function relativeTime(a: number, b: number) {
-    console.log({ a, b, ab: a - b })
     return relativeTimeDiff(Math.abs(a - b))
 }
 

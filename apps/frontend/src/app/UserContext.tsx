@@ -1,10 +1,10 @@
 
-import { User } from "@genshin-tcg/common";
+import { UserData } from "@genshin-tcg/common";
 import React from "react";
 
 type UserContextObj = {
-  user?: User,
-  setUser: (u: User) => void,
+  user?: UserData,
+  setUser: (u: UserData) => void,
   
 }
 const defUser: UserContextObj = {

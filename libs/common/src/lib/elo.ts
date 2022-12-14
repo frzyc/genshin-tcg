@@ -1,5 +1,5 @@
-import { User } from "./common"
-export function eloMatchMeta(mm: User["matchMeta"]) {
+import { UserData } from "./common"
+export function eloMatchMeta(mm: UserData["matchMeta"]) {
   return elo(mm.wins, mm.losses, mm.eloTot)
 }
 export function elo(wins: number, losses: number, scoreSum: number) {

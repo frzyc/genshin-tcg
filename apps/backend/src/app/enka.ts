@@ -2,28 +2,28 @@ import { EnkaData } from "./User";
 
 // a test database so we dont use the enka api
 export const enka: { [uid: string]: EnkaData } = {
-    123456789: {
-        uid: "123456789",
+    601061705: {
+        uid: "601061705",
         playerInfo: {
-            nickname: "Artesians",
-            signature: "I stream sometimes",
-            nameCardId: 210052,
+            nickname: "frzyc",
+            signature: "Genshin Optimizer Dev",
+            nameCardId: 210092,
             level: 69,
             profilePicture: {
-                avatarId: 10000074
+                avatarId: 10000043
             },
 
         }
     },
-    987654321: {
-        uid: "987654321",
+    604097434: {
+        uid: "604097434",
         playerInfo: {
-            nickname: "Eko the pengu",
-            signature: "Exam is never ending",
-            nameCardId: 210004,
+            nickname: "Monochrom9",
+            signature: "Certified Dolphin",
+            nameCardId: 210014,
             level: 420,
             profilePicture: {
-                avatarId: 10000063
+                avatarId: 10000034
             },
 
         }

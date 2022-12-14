@@ -22,14 +22,49 @@ export type ProfileData = {
   nameCardId: number,
   profilePicture: number,
 }
-
-export type User = {
+export type MatchMeta = {
+  wins: number
+  losses: number
+  eloTot: number
+  elo: number
+}
+export type UserData = {
   uid: string,
   profile: ProfileData,
-  matchMeta: {
-    wins: number
-    losses: number
-    eloTot: number
-  }
+  matchMeta: MatchMeta,
   history: MatchHistory
+}
+
+export type MatchOpponent = {
+  uid: string,
+  profile: ProfileData,
+  join: boolean
+}
+
+export type Leaderboard = Array<[uid: string, elo: number]>
+
+export const serverNames = ["internal", "celestia", "irminsul", "na", "eu", "asia", "sar"] as const
+export type ServerName = typeof serverNames[number]
+
+export function serverLookup(uid: UID): ServerName {
+  const prefix = uid[0]
+  switch (prefix) {
+    case "0":
+      return "internal"
+    case "1":
+    case "2":
+      return "celestia"
+    case "5":
+      return "irminsul"
+    case "6":
+      return "na"
+    case "7":
+      return "eu"
+    case "8":
+      return "asia"
+    case "9":
+      return "sar"
+    default:
+      return "internal"
+  }
 }

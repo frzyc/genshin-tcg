@@ -10,7 +10,8 @@ export default function initServer(app: Express) {
   const server = http.createServer(app);
   initSocket(server)
 
-  app.use(cors({ origin: "http://localhost:3000" }))
+  if (process.env.NODE_ENV === "development")
+    app.use(cors({ origin: "http://localhost:3000" }))
 
   // parse requests of content-type - application/json
   app.use(express.json());
@@ -18,11 +19,7 @@ export default function initServer(app: Express) {
   // parse requests of content-type - application/x-www-form-urlencoded
   app.use(express.urlencoded({ extended: true }));
 
-
-  // simple route
-  app.get("/", (req, res) => {
-    res.json({ message: "Why are you here?" });
-  });
+  app.use("/", express.static(__dirname + '/../frontend'))
 
 
   // set port, listen for requests

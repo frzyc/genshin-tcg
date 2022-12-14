@@ -40,3 +40,6 @@ Thumbs.db
 
 # Personal notes
 .note*
+
+# directory that dumps backup dbs for backend
+backend_backup

@@ -1,24 +1,25 @@
-import { User } from '@genshin-tcg/common';
+import { UserData } from '@genshin-tcg/common';
 import { Stack } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
+import LeaderboardDisplay from './LeaderboardDisplay';
 import MatchHistoryDisplay from './MatchHistoryDisplay';
 import MatchMakerCard from './MatchMakerCard';
 import { SocketContext } from './SocketContext';
 import { UserContext } from './UserContext';
 import UserDisplay from './UserDisplay';
-
+const socket = io("http://localhost:8080/")
 export default function Content() {
-  const [user, setUser] = useState(undefined as User | undefined)
-  const socket = useMemo(() => io("http://localhost:8080/"), [])
+  const [user, setUser] = useState(undefined as UserData | undefined)
+  // const socket = useMemo(() => io("http://localhost:8080/"), [])
   const [isConnected, setIsConnected] = useState(socket.connected);
   const socketCtx = useMemo(() => ({
     isConnected,
     socket
-  }), [socket, isConnected])
+  }), [isConnected])
   const userCtx = useMemo(() => ({
     user,
-    setUser: (u: User) => {
+    setUser: (u: UserData) => {
       setUser(u)
       localStorage.setItem("uid", u.uid)
     },
@@ -30,19 +31,20 @@ export default function Content() {
     });
     socket.on('disconnect', () => {
       setIsConnected(false);
+      socket.removeAllListeners();
     });
     return () => {
       socket.off('connect');
       socket.off('disconnect');
     };
   }, []);
-  console.log({ user })
   return <SocketContext.Provider value={socketCtx}>
     <UserContext.Provider value={userCtx}>
       <Stack spacing={2}>
         <UserDisplay />
-        {!!user?.uid && isConnected && <MatchMakerCard />}
+        {!!user && isConnected && <MatchMakerCard user={user} />}
         {!!user && <MatchHistoryDisplay user={user} />}
+        <LeaderboardDisplay />
       </Stack>
     </UserContext.Provider>
   </SocketContext.Provider>
