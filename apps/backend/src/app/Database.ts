@@ -21,6 +21,7 @@ const backupDir = resolve(__dirname, "../../../backend_backup")
 const BACKUP_PERIOD = 5 * 1000//TODO: less frequent backups... every 5 min? 
 const CLEANSE_OLD_BACKUP_PERIOD = 5 * BACKUP_PERIOD
 export class Database {
+  leaderboardCache: Record<ServerName, Leaderboard>
   constructor() {
 
     //load from latest backup
@@ -33,6 +34,11 @@ export class Database {
     setInterval(() => {
       this.backup()
     }, BACKUP_PERIOD)
+
+    this.leaderboardCache = this.leaderboard()
+    setInterval(() => {
+      this.leaderboardCache = this.leaderboard()
+    }, 10 * 1000)
   }
   data = {} as { [uid: UID]: DatabaseEntry }
   get(uid: UID): DatabaseEntry {

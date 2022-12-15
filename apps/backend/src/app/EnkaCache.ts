@@ -1,7 +1,6 @@
 import { ProfileData, UID } from "@genshin-tcg/common"
 import axios from "axios"
-import { enka } from "./enka"
-import { EnkaData, enkaToProfile } from "./User"
+import { enka, EnkaData, enkaToProfile } from "./enka"
 type EnkaCacheEntry = {
   profile: ProfileData,
   acquired: number

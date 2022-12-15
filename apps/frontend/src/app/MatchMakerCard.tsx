@@ -1,4 +1,4 @@
-import { MatchOpponent, UserData } from '@genshin-tcg/common';
+import { ACCEPT_MATCH_PERIOD_MS, MatchOpponent, UserData } from '@genshin-tcg/common';
 import { avatars, namebanners } from '@genshin-tcg/genshin-imgs';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import GroupIcon from '@mui/icons-material/Group';
@@ -139,7 +139,7 @@ function AcceptMatchButton({ matchId, }: { matchId: string }) {
   }, [matchId])
   useEffect(() => {
     interval.current = setInterval(() => {
-      const elapsed = 30 * 1000 - (Date.now() - startTime)
+      const elapsed = ACCEPT_MATCH_PERIOD_MS - (Date.now() - startTime)
       settimeElapsed(elapsed < 0 ? 0 : elapsed)
     }, 100)
 
@@ -147,7 +147,7 @@ function AcceptMatchButton({ matchId, }: { matchId: string }) {
       clearInterval(interval.current)
     }
   }, [startTime,])
-  const progress = 100 * timeElapsed / (30 * 1000)
+  const progress = 100 * timeElapsed / (ACCEPT_MATCH_PERIOD_MS)
   return <Button sx={{
     position: "relative",
     overflow: "hidden"

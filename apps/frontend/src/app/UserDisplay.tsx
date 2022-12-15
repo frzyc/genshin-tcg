@@ -17,6 +17,7 @@ export default function UserDisplay() {
 
   const onClick = () => {
     socket.emit("userData", uidTemp)
+    setchecking(true)
   }
   useEffect(() => {
     socket.on('userData:fail', () => {

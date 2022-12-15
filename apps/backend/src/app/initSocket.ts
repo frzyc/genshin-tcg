@@ -1,8 +1,8 @@
-import { MatchOpponent, serverLookup, ServerName, serverNames, UID, UserData } from "@genshin-tcg/common";
+import { ACCEPT_MATCH_PERIOD_MS, MatchOpponent, serverLookup, UID, UserData } from "@genshin-tcg/common";
 import { Server } from "http";
 import { Server as SocketServer, Socket } from "socket.io";
-import { Database } from "./Database";
-import { EnkaCache } from "./EnkaCache";
+import { database, enkaCache, getUsr, serverQueueMap } from "./Globals";
+import MatchQueue from "./MatchQueue";
 type UserSocket = {
   user: UserData,
   socket: Socket,
@@ -15,23 +15,6 @@ type Match = {
 }
 let matchCounter = 0;
 
-const database = new Database()
-const enkaCache = new EnkaCache()
-async function getUsr(uid: UID): Promise<UserData | null> {
-  const enkaEntry = await enkaCache.get(uid)
-  if (!enkaEntry) return null
-  return { ...database.get(uid), uid, profile: enkaEntry.profile }
-}
-
-type Queue = { [uid: UID]: Socket }
-
-const serverQueueMap = Object.fromEntries(serverNames.map(sn => [sn, {}])) as Record<ServerName, Queue>
-
-let leaderboardCache = database.leaderboard()
-setInterval(() => {
-  leaderboardCache = database.leaderboard()
-}, 10 * 1000)
-
 export default function initSocket(server: Server) {
   const io = new SocketServer(server, {
     cors: {
@@ -43,43 +26,50 @@ export default function initSocket(server: Server) {
   io.on('connection', (socket) => {
     console.log("new connection", io.engine.clientsCount)
     let socketUid: UID = ""
-    let queue = {} as Queue
+    let queue: MatchQueue
     //update # of users to every connection
+    let notifiedQL = queue?.numUsrsCached ?? 0
     const usrInterval = setInterval(() => {
-      io.emit('users', Object.keys(queue).length)
+      // Only send usr info if the number changes
+      const ql = queue?.numUsrsCached ?? 0
+      if (notifiedQL !== ql) {
+        socket.emit('users',)
+        notifiedQL = ql
+      }
     }, 1000)
     //update leaderboard to every connection
     const leaderInterval = setInterval(() => {
-      socketUid && io.emit("leaderboard", leaderboardCache[serverLookup(socketUid)])
+      socketUid && socket.emit("leaderboard", database.leaderboardCache[serverLookup(socketUid)])
     }, 10 * 1000)
 
-    socket.on("match", async (uid) => {
+    socket.on("match", (uid) => {
+      if (!queue) return
       queue = serverQueueMap[serverLookup(uid)]
-      if (queue[uid]) {
+      if (queue.get(uid)) {
         console.error("user already queued")
         //TODO: emit something back to reset UI
         return
       }
-      if (Object.keys(queue).length >= 1) { // TODO elo matching
-        const opponentUid = Object.keys(queue)[0]
-        matchPlayer(
-          { user: await getUsr(uid), socket },
-          { user: await getUsr(opponentUid), socket: queue[opponentUid] })
-        delete queue[opponentUid]
-      } else {
-        queue[uid] = socket
-      }
+      queue.add(uid, socket)
+      queue.match(uid, async (a, as, b, bs) => matchPlayer(
+        { user: await getUsr(a), socket: as },
+        { user: await getUsr(b), socket: bs })
+      )
     })
     socket.on("match:cancel", (uid: UID) => {
-      delete queue[uid]
+      queue?.remove(uid)
     })
     socket.on("userData", async (uid: UID) => {
+      console.log("userData", uid)
       const usr = await getUsr(uid)
       if (usr) {
-        socket.emit("userData", usr as UserData)
-        socketUid = uid
-        queue = serverQueueMap[serverLookup(socketUid)]
-        io.emit("leaderboard", leaderboardCache[serverLookup(socketUid)])
+        setTimeout(() => {
+          socket.emit("userData", usr as UserData)
+          socketUid = uid
+          queue = serverQueueMap[serverLookup(socketUid)]
+          io.emit("leaderboard", database.leaderboardCache[serverLookup(socketUid)])
+        }, 1000);
+
       }
       else socket.emit("userData:fail")
     })
@@ -88,9 +78,9 @@ export default function initSocket(server: Server) {
       if (e) socket.emit(`profile:${uid}`, e.profile)
     })
     socket.on('disconnect', () => {
-      delete queue[socketUid]
+      queue?.remove(socketUid)
       socketUid = ""
-      queue = {}
+      queue = undefined
       socket.removeAllListeners()
       clearInterval(usrInterval)
       clearInterval(leaderInterval)
@@ -122,7 +112,7 @@ function matchPlayer(p1: UserSocket, p2: UserSocket) {
     console.log("MATCH DECLIENED");
     [p1, p2].map(p => p.socket.emit(`match:${matchId}:canceled`))
     //TODO: decline behaviour, putting the player who didnt decline back in queue
-  }, 30 * 1000);
+  }, ACCEPT_MATCH_PERIOD_MS);
 }
 
 function matchAccepted(matchId: string, p1: UserSocket, p2: UserSocket) {
