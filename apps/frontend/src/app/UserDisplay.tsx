@@ -4,10 +4,11 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LoadingButton from '@mui/lab/LoadingButton';
 import { Box, TextField, Typography } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
+import { profileCache } from './ProfileCache';
 import { SocketContext } from './SocketContext';
 import { UserContext } from './UserContext';
 export default function UserDisplay() {
-  const { socket } = useContext(SocketContext)
+  const { socket, isConnected } = useContext(SocketContext)
   const { user, setUser } = useContext(UserContext)
   const [uidTemp, setUidTemp] = useState(() => localStorage.getItem("uid") || "123456789") // TODO: default ""
   const [checking, setchecking] = useState(false)
@@ -31,6 +32,7 @@ export default function UserDisplay() {
 
   useEffect(() => {
     socket.on("userData", (user: UserData) => {
+      profileCache[user.uid] = user.profile
       if (user.uid !== uidTemp) return
       setUser(user)
     })
@@ -74,7 +76,7 @@ export default function UserDisplay() {
     <LoadingButton
       sx={{ borderTopRightRadius: "28px", borderBottomRightRadius: "28px", opacity: 0.7 }}
       loading={checking} startIcon={<AccountCircleIcon />} loadingPosition="start"
-      disabled={uidTemp.length !== 9} variant="contained"
+      disabled={uidTemp.length !== 9 || !isConnected} variant="contained"
       onClick={onClick}>Check UID</LoadingButton>
 
   </Box>

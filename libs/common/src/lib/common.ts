@@ -68,3 +68,5 @@ export function serverLookup(uid: UID): ServerName {
       return "internal"
   }
 }
+
+export const ACCEPT_MATCH_PERIOD_MS = 30 * 1000

@@ -33,6 +33,12 @@ export default function Content() {
       setIsConnected(false);
       socket.removeAllListeners();
     });
+    socket.on('new_connection_disconnect', () => {
+      setIsConnected(false);
+      socket.removeAllListeners();
+      setUser(undefined)
+      alert("A new login has been detected. This current tab will be offline.")
+    })
     return () => {
       socket.off('connect');
       socket.off('disconnect');

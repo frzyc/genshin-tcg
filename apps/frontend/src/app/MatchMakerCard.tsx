@@ -25,14 +25,12 @@ export default function MatchMakerCard({ user }: { user: UserData }) {
   }, [socket, user.uid])
 
   useEffect(() => {
-    socket.on('match', (op) => {
-      setMatchId(op)
+    socket.on('match', (matchId: string) => {
+      setMatchId(matchId)
     });
 
     return () => {
       socket.off('match');
-      socket.off('match_discrepancy');
-      socket.off('match_result_accepted');
     };
   }, [socket]);
   useEffect(() => {
@@ -67,7 +65,6 @@ export default function MatchMakerCard({ user }: { user: UserData }) {
         <Box flexGrow={1} />
         <NumUserDisplay />
       </Box>}
-      {/* {!matchId && matching && <Typography>Matching....</Typography>} */}
       {!!matchId && !opponent && <AcceptMatchButton matchId={matchId} />}
       {!!matchId && !!opponent && <MatchOpponentDisplay opponent={opponent} matchId={matchId} onMatchOver={onMatchOver} />}
     </CardContent>
@@ -77,10 +74,7 @@ function NumUserDisplay() {
   const [numUsers, setNumUsers] = useState(0)
   const { socket } = useContext(SocketContext)
   useEffect(() => {
-    socket.on('users', (n) => {
-      console.log("users", n)
-      setNumUsers(n)
-    })
+    socket.on('users', (n: number) => setNumUsers(n))
     return () => {
       socket.off('users');
     };
@@ -130,7 +124,6 @@ function AcceptMatchButton({ matchId, }: { matchId: string }) {
   const [accepted, setAccepted] = useState(false)
   const onClick = useCallback(() => {
     setAccepted(true)
-    console.log("accept", `match:${matchId}:accept`)
     socket.emit(`match:${matchId}:accept`);
   }, [setAccepted, socket, matchId],)
   useEffect(() => {

@@ -1,11 +1,10 @@
-import { eloMatchMeta, MatchEntry, ProfileData, UserData } from '@genshin-tcg/common';
+import { eloMatchMeta, MatchEntry, UserData } from '@genshin-tcg/common';
 import { avatars, namebanners } from '@genshin-tcg/genshin-imgs';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Accordion, AccordionDetails, AccordionSummary, Box, Card, Chip, Divider, Stack, Typography } from '@mui/material';
-import { useContext, useEffect, useState } from 'react';
 import { resolutionToColor } from './common';
 import { relativeTime } from './relative';
-import { SocketContext } from './SocketContext';
+import useProfile from './useProfile';
 export default function MatchHistoryDisplay({ user }: { user: UserData }) {
   return <Card>
     <Accordion defaultExpanded >
@@ -22,49 +21,44 @@ export default function MatchHistoryDisplay({ user }: { user: UserData }) {
       <Divider />
       <AccordionDetails>
         <Stack spacing={1}>
-          {user.history.map((matchEntry, i) => <MatchHistoryEntry matchEntry={matchEntry} key={i} />)}
+          {user.history.map((matchEntry, i) => <MatchHistoryEntry index={i} matchEntry={matchEntry} key={`${i}${matchEntry.opponent}${matchEntry.time}`} />)}
         </Stack>
       </AccordionDetails>
     </Accordion>
   </Card>
 }
-function MatchHistoryEntry({ matchEntry: { elo, opponent, opponentElo, resolution, time } }: { matchEntry: MatchEntry }) {
+function MatchHistoryEntry({ index, matchEntry: { elo, opponent, opponentElo, resolution, time } }: { index: number, matchEntry: MatchEntry }) {
   //TODO: need to refresh every once in a while to refresh the timer
-  const [profile, setProfile] = useState(undefined as ProfileData | undefined)
-  const { socket } = useContext(SocketContext)
-  useEffect(() => {
-    const rEvtName = `profile:${opponent}`
-    socket.emit("profile", opponent)
-    socket.once(rEvtName, (p: ProfileData) => setProfile(p))
-    return () => {
-      socket.off(rEvtName)
-    }
-  }, [opponent, socket])
+
+  const profile = useProfile(opponent, (index + 1) * 100)
   const profileid = (profile?.profilePicture ?? 10000005) as keyof typeof avatars
 
   const namebanner = namebanners[(profile?.nameCardId ?? "") as keyof typeof namebanners]
-  return <Box sx={{
-    padding: 1,
-    // pl: 0,
-    borderRadius: "56px",
-    display: "flex", gap: 1,
-    width: "100%",
-    backgroundColor: resolutionToColor(resolution),
-    backgroundImage: `url(${namebanner})`,
-    backgroundSize: "auto 100%",
-    backgroundPosition: "right center",
-    backgroundRepeat: "no-repeat"
-  }}>
+  return <Box display="flex" alignItems="center" gap={1}>
+    <Typography sx={{ minWidth: "3em", color: resolutionToColor(resolution) }}>{elo.toFixed()}</Typography>
     <Box sx={{
-      marginY: "-4px",
-      marginLeft: "-4px",
-      height: "32px", width: "auto",
+      padding: 1,
+      // pl: 0,
       borderRadius: "56px",
-      backgroundColor: "rgba(200,200,200,0.8)"
-    }} component="img" src={avatars[profileid]} />
-    <Chip label={profile ? `${profile.nickname} (${opponentElo.toFixed()})` : opponent} size="small" />
-    <Typography>ELO: {elo.toFixed()}</Typography>
-    <Box flexGrow={1} />
-    <Typography sx={{ pr: 2, textShadow: "0 0 5px black" }}>{relativeTime(Date.now(), time)}</Typography>
+      display: "flex", gap: 1,
+      width: "100%",
+      backgroundColor: resolutionToColor(resolution),
+      backgroundImage: `url(${namebanner})`,
+      backgroundSize: "auto 100%",
+      backgroundPosition: "right center",
+      backgroundRepeat: "no-repeat"
+    }}>
+      <Box sx={{
+        marginY: "-4px",
+        marginLeft: "-4px",
+        height: "32px", width: "auto",
+        borderRadius: "56px",
+        backgroundColor: "rgba(200,200,200,0.8)"
+      }} component="img" src={avatars[profileid]} />
+      <Chip label={profile ? `${profile.nickname} (${opponentElo.toFixed()})` : opponent} size="small" />
+
+      <Box flexGrow={1} />
+      <Typography sx={{ pr: 2, textShadow: "0 0 5px black" }}>{relativeTime(Date.now(), time)}</Typography>
+    </Box >
   </Box >
 }
