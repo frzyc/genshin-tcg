@@ -1,6 +1,7 @@
 import { ServerName, serverNames, UID, UserData } from "@genshin-tcg/common";
 import { Database } from "./Database";
 import { EnkaCache } from "./EnkaCache";
+import Matches from "./Matches";
 import MatchQueue from "./MatchQueue";
 import Users from "./Users";
 
@@ -13,3 +14,4 @@ export async function getUsr(uid: UID): Promise<UserData | null> {
 }
 export const serverQueueMap = Object.fromEntries(serverNames.map(sn => [sn, new MatchQueue()])) as Record<ServerName, MatchQueue>
 export const users = new Users()
+export const matches = new Matches()

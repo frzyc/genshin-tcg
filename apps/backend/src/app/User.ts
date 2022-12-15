@@ -1,18 +1,9 @@
 import { ACCEPT_MATCH_PERIOD_MS, MatchOpponent, serverLookup, UID, UserData } from "@genshin-tcg/common";
 import { Socket } from "socket.io";
-import { database, enkaCache, getUsr, serverQueueMap } from "./Globals";
+import { database, enkaCache, getUsr, matches, serverQueueMap } from "./Globals";
+import Match from "./Match";
 import MatchQueue from "./MatchQueue";
 
-type UserSocket = {
-  user: UserData,
-  socket: Socket,
-}
-type Match = {
-  key: string
-  p1: UserSocket
-  p2: UserSocket
-  startTime: Date,
-}
 let matchCounter = 0;
 // Associates a uid with a socket. this means that if another tab is opened with the same UID, the old socket will be kicked.
 export default class User {
@@ -53,6 +44,7 @@ export default class User {
     socket.on("match", () => this.matchMake())
     socket.on("match:cancel", () => this.unMatchMake())
     socket.on("profile", (uid: UID) => this.getProfile(uid))
+    socket.on("ongoing", () => this.checkOnGoing())
   }
   unsetSocket() {
     this.socket.emit("new_connection_disconnect")
@@ -64,11 +56,8 @@ export default class User {
       //TODO: emit something back to reset UI
       return
     }
-    this.queue.add(this.uid, this.socket)
-    this.queue.match(this.uid, async (a, as, b, bs) => matchPlayer(
-      { user: await getUsr(a), socket: as },
-      { user: await getUsr(b), socket: bs })
-    )
+    this.queue.add(this.uid, this)
+    this.queue.match(this.uid, matchPlayer)
   }
   unMatchMake() {
     this.queue.remove(this.uid)
@@ -83,67 +72,40 @@ export default class User {
     const e = await enkaCache.get(uid)
     if (e) this.socket.emit(`profile:${uid}`, e.profile)
   }
+  async checkOnGoing() {
+
+    //check if there is an ongoing match
+    const ogMatch = matches.get(this.uid)
+    console.log("checkOnGoing", !!ogMatch)
+    if (ogMatch) {
+      const opponent = ogMatch.p1.uid === this.uid ? ogMatch.p2 : ogMatch.p1
+      this.socket.emit("match:ongoing", {
+        matchId: ogMatch.matchId,
+        uid: opponent.uid,
+        profile: (await enkaCache.get(opponent.uid)).profile,
+        join: ogMatch.p2.uid === this.uid,
+        startTime: ogMatch.startTime
+      } as MatchOpponent)
+    }
+  }
 }
 
-function matchPlayer(p1: UserSocket, p2: UserSocket) {
-  const matchId = "" + p1.user.uid + p2.user.uid + matchCounter++
-  const match: Match = {
-    key: matchId, p1, p2,
-    startTime: new Date()
-  };
+function matchPlayer(p1: User, p2: User) {
+  const matchId = "" + p1.uid + p2.uid + matchCounter++
   [p1, p2].map(p => p.socket.emit("match", matchId))
   let p1Accept = false, p2Accept = false
   const matchStr = `match:${matchId}:accept`
   p1.socket.once(matchStr, () => {
     p1Accept = true
-    if (p2Accept) matchAccepted(matchId, p1, p2)
+    if (p2Accept) matches.add(new Match(matchId, p1, p2))
   })
   p2.socket.once(matchStr, () => {
     p2Accept = true
-    if (p1Accept) matchAccepted(matchId, p1, p2)
+    if (p1Accept) matches.add(new Match(matchId, p1, p2))
   })
 
   setTimeout(() => {
     if (p1Accept && p2Accept) return
     [p1, p2].map(p => p.socket.emit(`match:${matchId}:canceled`))
   }, ACCEPT_MATCH_PERIOD_MS);
-}
-
-function matchAccepted(matchId: string, p1: UserSocket, p2: UserSocket) {
-  const matchOppStr = `match:${matchId}:opponent`
-  p1.socket.emit(matchOppStr, { uid: p2.user.uid, profile: p2.user.profile, join: false } as MatchOpponent)
-  p2.socket.emit(matchOppStr, { uid: p1.user.uid, profile: p1.user.profile, join: true } as MatchOpponent)
-
-  let p1Result = undefined as undefined | boolean
-  let p2Result = undefined as undefined | boolean
-  const matchResultStr = `match:${matchId}:result`
-  p1.socket.on(matchResultStr, (result: boolean) => {
-    p1Result = result
-    checkResult()
-  })
-  p2.socket.on(matchResultStr, (result: boolean) => {
-    p2Result = result
-    checkResult()
-  })
-  async function checkResult() {
-    if (p1Result === undefined || p2Result === undefined) return
-    if (p1Result === p2Result) {
-      // result discrepancy
-      [p1Result, p2Result] = [undefined, undefined];
-      const matchResultDisStr = `match:${matchId}:result_discrepancy`
-      p1.socket.emit(matchResultDisStr)
-      p2.socket.emit(matchResultDisStr)
-    } else {
-      p1.socket.removeAllListeners(matchResultStr)
-      p2.socket.removeAllListeners(matchResultStr)
-      const [winner, loser] = p1Result ? [p1, p2] : [p2, p1]
-      database.matched(winner.user.uid, loser.user.uid, "win")
-      database.matched(loser.user.uid, winner.user.uid, "loss")
-      winner.socket.emit("userData", await getUsr(winner.user.uid))
-      loser.socket.emit("userData", await getUsr(loser.user.uid))
-      const matchResultAcceptStr = `match:${matchId}:result_accepted`
-      p1.socket.emit(matchResultAcceptStr)
-      p2.socket.emit(matchResultAcceptStr)
-    }
-  }
 }

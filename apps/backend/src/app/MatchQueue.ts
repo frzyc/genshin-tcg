@@ -1,8 +1,8 @@
 import { UID } from "@genshin-tcg/common";
-import { Socket } from "socket.io";
+import User from "./User";
 
 export default class MatchQueue {
-  queue = {} as { [uid: UID]: Socket }
+  queue = {} as { [uid: UID]: User }
   numUsrsCached = 0
   updateInterval: NodeJS.Timer
   constructor() {
@@ -13,8 +13,8 @@ export default class MatchQueue {
   destructor() {
     clearInterval(this.updateInterval)
   }
-  add(uid: UID, socket: Socket) {
-    this.queue[uid] = socket
+  add(uid: UID, usr: User) {
+    this.queue[uid] = usr
   }
   remove(uid: UID) {
     delete this.queue[uid]
@@ -29,12 +29,13 @@ export default class MatchQueue {
     this.numUsrsCached = Object.keys(this.queue).length
     return this.numUsrsCached
   }
-  match(uid: UID, cb: (a: UID, as: Socket, b: UID, bs: Socket) => void) {
+  match(uid: UID, cb: (a: User, b: User) => void) {
+    if (!this.queue[uid]) return
     if (!this.numUsrs) return
     // TODO: elo matching
     const opponentUid = this.getUids().find((u) => u !== uid)
     if (!opponentUid) return
-    cb(uid, this.get(uid), opponentUid, this.get(opponentUid))
+    cb(this.queue[uid], this.queue[opponentUid])
     this.remove(uid)
     this.remove(opponentUid)
   }

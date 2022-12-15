@@ -1,4 +1,4 @@
-import { ACCEPT_MATCH_PERIOD_MS, MatchOpponent, UserData } from '@genshin-tcg/common';
+import { ACCEPT_MATCH_PERIOD_MS, MatchOpponent, MATCH_TIME_MS, UserData } from '@genshin-tcg/common';
 import { avatars, namebanners } from '@genshin-tcg/genshin-imgs';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import GroupIcon from '@mui/icons-material/Group';
@@ -12,9 +12,6 @@ export default function MatchMakerCard({ user }: { user: UserData }) {
   const [matchId, setMatchId] = useState("")
   const [opponent, setOpponent] = useState(undefined as undefined | MatchOpponent)
 
-  // when a new match is found, reset the opponent.
-  useEffect(() => setOpponent(undefined), [matchId])
-
   const onMatchMake = useCallback(() => {
     setMatchId("")
     setOpponent(undefined)
@@ -27,6 +24,7 @@ export default function MatchMakerCard({ user }: { user: UserData }) {
   useEffect(() => {
     socket.on('match', (matchId: string) => {
       setMatchId(matchId)
+      setOpponent(undefined)
     });
 
     return () => {
@@ -55,9 +53,18 @@ export default function MatchMakerCard({ user }: { user: UserData }) {
     }
   }, [socket, matchId])
 
-  const onMatchOver = useCallback(() => setMatchId(""), [],
-  )
+  const onMatchOver = useCallback(() => setMatchId(""), [],)
 
+  useEffect(() => {
+    socket.emit("ongoing")
+    socket.once("match:ongoing", (mo: MatchOpponent) => {
+      setMatchId(mo.matchId)
+      setOpponent(mo)
+    })
+    return () => {
+      socket.off("match:ongoing")
+    }
+  }, [socket])
   return <Card>
     <CardContent sx={{ display: "flex", gap: 1, alignItems: "center" }}>
       {!matchId && <Box display="flex" gap={1} width="100%" alignItems="center">
@@ -158,6 +165,7 @@ function MatchOpponentDisplay({ matchId, opponent, onMatchOver }: { matchId: str
   const { socket } = useContext(SocketContext)
   const [matchResult, setMatchResult] = useState(undefined as undefined | boolean)
   const [resultDiscrepancy, setresultDiscrepancy] = useState(false)
+  const [remainTime, setremainTime] = useState(0)
 
   useEffect(() => {
     const matchResultDisStr = `match:${matchId}:result_discrepancy`
@@ -165,7 +173,7 @@ function MatchOpponentDisplay({ matchId, opponent, onMatchOver }: { matchId: str
       setMatchResult(undefined)
       setresultDiscrepancy(true)
     })
-    const matchResultAcceptStr = `match:${matchId}:result_accepted`
+    const matchResultAcceptStr = `match:${matchId}:end`
     socket.on(matchResultAcceptStr, () => {
       setMatchResult(undefined)
       setresultDiscrepancy(false)
@@ -187,12 +195,23 @@ function MatchOpponentDisplay({ matchId, opponent, onMatchOver }: { matchId: str
     socket.emit(matchResultStr, false)
     setresultDiscrepancy(false)
   }
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now()
+      const end = opponent.startTime + MATCH_TIME_MS
+      if (now > end) clearInterval(timer)
+      setremainTime(end - now)
+    }, 250)
+    return () => {
+      clearInterval(timer)
+    }
+  }, [opponent.startTime])
   return <Box>
     <Typography>You have been matched with:</Typography>
     <OpponentDisplay opponent={opponent} />
     {opponent.join ? <Typography>Join their world to start the game.</Typography> :
       <Typography>Wait for a join request to start the game.</Typography>}
-    <Typography>You have 30 minutes to let us know if you win or lost.</Typography>
+    <Typography>You have <strong>{minSecStr(remainTime)} minutes</strong> to let us know if you win or lost.</Typography>
     <Box display="flex" gap={2}>
       <Button variant="contained" color="success" onClick={onWon} disabled={matchResult === false}>I won</Button>
       <Button variant="contained" color="error" onClick={onLost} disabled={matchResult === true}>I Lost</Button>

@@ -76,10 +76,12 @@ export class Database {
       usr.matchMeta.wins++
     else if (resolution === "loss")
       usr.matchMeta.losses++
-    usr.matchMeta.elo = eloMatchMeta(usr.matchMeta)
+
+    if (resolution !== "unknown")
+      usr.matchMeta.elo = eloMatchMeta(usr.matchMeta)
 
     usr.history = [{
-      elo: eloMatchMeta(usr.matchMeta),
+      elo: usr.matchMeta.elo,
       opponent,
       opponentElo,
       resolution,

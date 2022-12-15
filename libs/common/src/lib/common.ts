@@ -36,9 +36,11 @@ export type UserData = {
 }
 
 export type MatchOpponent = {
+  matchId: string,
   uid: string,
   profile: ProfileData,
-  join: boolean
+  join: boolean,
+  startTime: number,
 }
 
 export type Leaderboard = Array<[uid: string, elo: number]>
@@ -70,3 +72,4 @@ export function serverLookup(uid: UID): ServerName {
 }
 
 export const ACCEPT_MATCH_PERIOD_MS = 30 * 1000
+export const MATCH_TIME_MS = 30 * 60 * 1000
