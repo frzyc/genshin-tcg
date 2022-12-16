@@ -4,9 +4,10 @@ import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import GroupIcon from '@mui/icons-material/Group';
 import { LoadingButton } from '@mui/lab';
 import { Box, Button, ButtonGroup, Card, CardContent, Chip, LinearProgress, Typography } from '@mui/material';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { minSecStr } from './relative';
 import { SocketContext } from './SocketContext';
+const raidenAudio = require("../assets/VO_Arataki_Itto_Elemental_Burst_03.ogg");
 export default function MatchMakerCard({ user }: { user: UserData }) {
   const { socket } = useContext(SocketContext)
   const [matchId, setMatchId] = useState("")
@@ -129,6 +130,7 @@ function AcceptMatchButton({ matchId, }: { matchId: string }) {
   const [timeElapsed, settimeElapsed] = useState(0)
   const interval = useRef(undefined as undefined | NodeJS.Timer)
   const [accepted, setAccepted] = useState(false)
+  const audio = useMemo(() => (new Audio(raidenAudio)), [])
   const onClick = useCallback(() => {
     setAccepted(true)
     socket.emit(`match:${matchId}:accept`);
@@ -137,6 +139,15 @@ function AcceptMatchButton({ matchId, }: { matchId: string }) {
     setstartTime(Date.now())
     setAccepted(false)
   }, [matchId])
+
+  useEffect(() => {
+    audio.play()
+    return () => {
+      audio.pause()
+      audio.currentTime = 0
+    }
+  }, [audio, matchId])
+
   useEffect(() => {
     interval.current = setInterval(() => {
       const elapsed = ACCEPT_MATCH_PERIOD_MS - (Date.now() - startTime)

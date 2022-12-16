@@ -15,6 +15,7 @@ export default function LeaderboardDisplay() {
       socket.off("leaderboard")
     }
   }, [socket])
+  if (!leaderboard) return null
   return <Card>
     <Accordion defaultExpanded >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>

@@ -18,7 +18,7 @@ function newEntry(): DatabaseEntry {
   }
 }
 const backupDir = resolve(__dirname, "../../../backend_backup")
-const BACKUP_PERIOD = 5 * 1000//TODO: less frequent backups... every 5 min? 
+const BACKUP_PERIOD = 5 * 60 * 1000
 const CLEANSE_OLD_BACKUP_PERIOD = 5 * BACKUP_PERIOD
 export class Database {
   leaderboardCache: Record<ServerName, Leaderboard>
