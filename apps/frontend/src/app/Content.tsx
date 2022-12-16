@@ -2,13 +2,14 @@ import { UserData } from '@genshin-tcg/common';
 import { Stack } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
+import { environment } from '../environments/environment';
 import LeaderboardDisplay from './LeaderboardDisplay';
 import MatchHistoryDisplay from './MatchHistoryDisplay';
 import MatchMakerCard from './MatchMakerCard';
 import { SocketContext } from './SocketContext';
 import { UserContext } from './UserContext';
 import UserDisplay from './UserDisplay';
-const socket = io("http://localhost:8080/")
+const socket = io(environment.production ? "/" : "http://localhost:8080/")
 export default function Content() {
   const [user, setUser] = useState(undefined as UserData | undefined)
   // const socket = useMemo(() => io("http://localhost:8080/"), [])

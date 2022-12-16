@@ -10,7 +10,7 @@ import { UserContext } from './UserContext';
 export default function UserDisplay() {
   const { socket, isConnected } = useContext(SocketContext)
   const { user, setUser } = useContext(UserContext)
-  const [uidTemp, setUidTemp] = useState(() => localStorage.getItem("uid") || "123456789") // TODO: default ""
+  const [uidTemp, setUidTemp] = useState(() => localStorage.getItem("uid") || "")
   const [checking, setchecking] = useState(false)
   useEffect(() => {
     uidTemp === user?.uid && setchecking(false)

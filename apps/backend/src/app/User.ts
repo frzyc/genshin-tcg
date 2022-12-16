@@ -76,7 +76,6 @@ export default class User {
 
     //check if there is an ongoing match
     const ogMatch = matches.get(this.uid)
-    console.log("checkOnGoing", !!ogMatch)
     if (ogMatch) {
       const opponent = ogMatch.p1.uid === this.uid ? ogMatch.p2 : ogMatch.p1
       this.socket.emit("match:ongoing", {
